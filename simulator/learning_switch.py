@@ -21,13 +21,15 @@ class LearningSwitch (api.Entity):
   someone would invent a helpful poem for solving that problem...
   """
 
+
+
   def __init__ (self):
     """
     Do some initialization
 
     You probablty want to do something in this method.
     """
-    pass
+    self.memo = {}
 
   def handle_port_down (self, port):
     """
@@ -35,7 +37,8 @@ class LearningSwitch (api.Entity):
 
     You probably want to remove table entries which are no longer valid here.
     """
-    pass
+    if port in self.memo:
+      del self.memo[port]
 
   def handle_rx (self, packet, in_port):
     """
@@ -51,9 +54,23 @@ class LearningSwitch (api.Entity):
     # But it's up to you to implement that.  For now, we just implement a
     # simple hub.
 
+    
+    # print api.get_name(self), ': ', self.memo
+    if in_port not in self.memo:
+      self.memo[in_port] = set()
+
+    self.memo[in_port].add(api.get_name(packet.src))
+    # print 'SRC: %s, DST: %s' % (api.get_name(packet.src), api.get_name(packet.dst))
+
     if isinstance(packet, basics.HostDiscoveryPacket):
       # Don't forward discovery messages
       return
+
+    for port in self.memo:
+      if api.get_name(packet.dst) in self.memo[port]:
+        self.send(packet, port)
+        return
+
 
     # Flood out all ports except the input port
     self.send(packet, in_port, flood=True)
